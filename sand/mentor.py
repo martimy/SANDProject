@@ -37,48 +37,61 @@ class MENTOR(SANDAlgorithm):
     def __init__(self):
         SANDAlgorithm.__init__(self)
 
-    def run(self, cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.5, cap=1,
-            slack=0.4):
-        self.nt = len(cost)                 # Number of nodes
-        self.cost = cost                    # Cost matrix (nt x nc)
-        self.req = req                      # Traffic matrix (nt x nc)
-        self.wparm = wparm                  # fraction of max weight
+    def run(
+        self, cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.5, cap=1, slack=0.4
+    ):
+        self.nt = len(cost)  # Number of nodes
+        self.cost = cost  # Cost matrix (nt x nc)
+        self.req = req  # Traffic matrix (nt x nc)
+        self.wparm = wparm  # fraction of max weight
         self.backbone = []
         self.maxWeight = 0
         self.assoc = []
-        self.rParm = rparm                  # fraction of max distance [0,1]
-        self.dParm = dparm                  # fraction for fig_of_merit [0,1]
-        self.alpha = alpha                  # PrimDijk parameter [0,1]
-        self.cap = cap                      # single-channel usable capacity
+        self.rParm = rparm  # fraction of max distance [0,1]
+        self.dParm = dparm  # fraction for fig_of_merit [0,1]
+        self.alpha = alpha  # PrimDijk parameter [0,1]
+        self.cap = cap  # single-channel usable capacity
         self.slack = slack
 
-        self.logger.debug('Starting MENTOR Algorithm')
+        self.logger.debug("Starting MENTOR Algorithm")
 
         # PART 1 : find backbone nodes
         self.backbone, weight, Cassoc = self.__findBackbone()
-        self.logger.debug('Backbone nodes = {} : {}'.format(len(self.backbone),
-                                                            ','.join(map(str, self.backbone))))
+        self.logger.debug(
+            "Backbone nodes = {} : {}".format(
+                len(self.backbone), ",".join(map(str, self.backbone))
+            )
+        )
 
         # PART 2 : Create topology
         median = self.__findBackboneMedian(self.backbone, weight)
-        self.logger.debug('Backbone Median = {}'.format(median))
+        self.logger.debug("Backbone Median = {}".format(median))
 
         pred = self.__findPrimDijk(median, Cassoc)
-        self.logger.debug('Pred nodes = {} {}'.format(
-            len(pred), ','.join(map(str, pred))))
+        self.logger.debug(
+            "Pred nodes = {} {}".format(len(pred), ",".join(map(str, pred)))
+        )
 
         spPred, spDist = self.__setDist(median, pred)
         seqList, home = self.__setSequence(spPred)
         endList, multList = self.__compress(seqList, home)
 
-        tree = [(i, pred[i]) for i in range(len(pred))
-                if i in self.backbone and i != pred[i]]
-        return {"backbone": self.backbone, "tree": tree, "mesh": endList,
-                "channels": multList, "median": median}
+        tree = [
+            (i, pred[i])
+            for i in range(len(pred))
+            if i in self.backbone and i != pred[i]
+        ]
+        return {
+            "backbone": self.backbone,
+            "tree": tree,
+            "mesh": endList,
+            "channels": multList,
+            "median": median,
+        }
 
     # Set node weights
     def __findWeight(self):
-        weight = []                     # This is the weight
+        weight = []  # This is the weight
         for n in range(self.nt):
             sum = 0
             for i in range(self.nt):
@@ -112,9 +125,9 @@ class MENTOR(SANDAlgorithm):
 
         self.maxWeight = max(weight)
         self.wparm *= self.maxWeight
-        tbAssigned = []                 # to be assigned nodes
+        tbAssigned = []  # to be assigned nodes
         for n in range(self.nt):
-            if(weight[n] >= self.wparm):
+            if weight[n] >= self.wparm:
                 backbone.append(n)
             else:
                 tbAssigned.append(n)
@@ -128,8 +141,9 @@ class MENTOR(SANDAlgorithm):
 
         # The Figure of Merit function
         def figMerit(u):
-            return self.dParm * (self.cost[u][median] / self.maxDist) + \
-                (1-self.dParm) * (weight[u] / self.maxWeight)
+            return self.dParm * (self.cost[u][median] / self.maxDist) + (
+                1 - self.dParm
+            ) * (weight[u] / self.maxWeight)
 
         radius = self.maxDist * self.rParm
         Cassoc = [i for i in range(self.nt)]
@@ -138,14 +152,14 @@ class MENTOR(SANDAlgorithm):
             # the closest backbone node if there are within a given radius
             unassigned = []
             for c in tbAssigned:
-                lowestR = self.INF                # any big +ve number
+                lowestR = self.INF  # any big +ve number
                 assgnd = False
                 for b in backbone:
-                    if(self.cost[c][b] < radius):
+                    if self.cost[c][b] < radius:
                         # if the distance is lower than the radius,
                         # the node becomes a terminal node associated
                         # with the closest backbone (or cheapest to connect)
-                        if(self.cost[c][b] < lowestR):
+                        if self.cost[c][b] < lowestR:
                             lowestR = self.cost[c][b]
                             Cassoc[c] = b
                             assgnd = True
@@ -170,12 +184,13 @@ class MENTOR(SANDAlgorithm):
     # Build initial tree topology
     def __findPrimDijk(self, root, Cassoc):
         assert root in self.backbone
-        #outTree = list(range(self.nt))
+        # outTree = list(range(self.nt))
         outTree = list(self.backbone)
         # strating with the terminal association list, assigning all backbone nodes
         # to root as predecessor
-        pred = [(lambda x: root if Cassoc[x] == x else Cassoc[x])(i)
-                for i in range(self.nt)]
+        pred = [
+            (lambda x: root if Cassoc[x] == x else Cassoc[x])(i) for i in range(self.nt)
+        ]
         inTree = []
         label = list(self.cost[root])  # copy the cost of every node to root
         while outTree:
@@ -189,14 +204,14 @@ class MENTOR(SANDAlgorithm):
                     leastCost = label[b]
                     n = b
 
-            #leastCost = min(label)
-            #n = label.index(leastCost)
+            # leastCost = min(label)
+            # n = label.index(leastCost)
             inTree.append(n)
             outTree.remove(n)
             label[n] = self.INF  # prevent the node from being considered again
             for o in outTree:
                 x = self.alpha * leastCost + self.cost[o][n]
-                if(label[o] > x):
+                if label[o] > x:
                     label[o] = x
                     pred[o] = n
         return pred
@@ -207,7 +222,7 @@ class MENTOR(SANDAlgorithm):
         n = 1
         while n < self.nt:
             for i in range(self.nt):
-                if((i not in preOrder) and (pred[i] in preOrder)):
+                if (i not in preOrder) and (pred[i] in preOrder):
                     preOrder.append(i)
                     n += 1
 
@@ -217,7 +232,7 @@ class MENTOR(SANDAlgorithm):
         for i in range(self.nt):
             j = preOrder[i]
             p = pred[j]
-            #spDist[j][j] = 0
+            # spDist[j][j] = 0
             for k in range(i):
                 l = preOrder[k]
                 spDist[j][l] = spDist[l][j] = spDist[p][l] + self.cost[j][p]
@@ -227,11 +242,11 @@ class MENTOR(SANDAlgorithm):
         for i in range(self.nt):
             spPred[i][i] = i
         for i in range(self.nt):
-            if(i == root):
+            if i == root:
                 continue
             p = pred[i]
             spPred[i][p] = i
-            while(p != root):
+            while p != root:
                 pp = pred[p]
                 spPred[i][pp] = p
                 p = pp
@@ -241,8 +256,11 @@ class MENTOR(SANDAlgorithm):
     # Find the order in which to consider node pairs
     def __setSequence(self, spPred):
         home = [[None for i in range(self.nt)] for j in range(self.nt)]
-        pair = [self.__makePair(self.nt, i, j) for i in range(self.nt)
-                for j in range(i+1, self.nt)]
+        pair = [
+            self.__makePair(self.nt, i, j)
+            for i in range(self.nt)
+            for j in range(i + 1, self.nt)
+        ]
 
         np = self.nt * self.nt
         nDep = [0] * np
@@ -253,18 +271,19 @@ class MENTOR(SANDAlgorithm):
             i, j = self.__splitPair(self.nt, pr)
             p1 = spPred[i][j]
             p2 = spPred[j][i]
-            if(p1 == i):  # this is a tree link
+            if p1 == i:  # this is a tree link
                 h = None
-            elif (p1 == p2):  # 2-hop path, only one possible home
+            elif p1 == p2:  # 2-hop path, only one possible home
                 h = p1
             else:
-                if((self.cost[i][p1] + self.cost[p1][j])
-                        <= (self.cost[i][p2] + self.cost[p2][j])):
+                if (self.cost[i][p1] + self.cost[p1][j]) <= (
+                    self.cost[i][p2] + self.cost[p2][j]
+                ):
                     h = p1
                 else:
                     h = p2
             home[i][j] = h
-            if(h):
+            if h:
                 # increment the number of pairs that depend on (i, h)
                 pair_ih = self.__makePair(self.nt, i, h)
                 dep1[pr] = pair_ih
@@ -275,7 +294,7 @@ class MENTOR(SANDAlgorithm):
             else:
                 dep1[pr] = dep2[pr] = None
 
-        #print("nDep :\n",nDep)
+        # print("nDep :\n",nDep)
         seqList = [p for p in pair if nDep[p] == 0]
 
         nseq = len(seqList)
@@ -299,7 +318,7 @@ class MENTOR(SANDAlgorithm):
                 else:
                     nDep[d] -= 1
 
-        #print("seqList :\n", seqList)
+        # print("seqList :\n", seqList)
 
         return seqList, home
 
@@ -310,7 +329,7 @@ class MENTOR(SANDAlgorithm):
         for row in range(len(self.req)):
             reqList[row] = list(self.req[row])
 
-        npairs = (self.nt * (self.nt - 1))//2
+        npairs = (self.nt * (self.nt - 1)) // 2
         endList = []
         multList = []
 
@@ -326,7 +345,7 @@ class MENTOR(SANDAlgorithm):
                 load -= mult * self.cap
 
             ovflow12 = ovflow21 = 0
-            if (h is None and load > 0) or (load >= (1-self.slack) * self.cap):
+            if (h is None and load > 0) or (load >= (1 - self.slack) * self.cap):
                 mult += 1
             else:
                 ovflow12 = max([0, reqList[x][y] - mult * self.cap])
@@ -352,7 +371,8 @@ class MENTOR(SANDAlgorithm):
             return n * j + i
 
     def __splitPair(self, n, p):
-        return p//n, p % n
+        return p // n, p % n
+
 
 # print cost list of network produced by MENTOR algorithm
 
@@ -363,23 +383,30 @@ def printCost(out, cost, labels):
     chlist = out["channels"]
 
     total = 0
-    print('%10s%10s%4s%8s' % ('From', 'To', 'Ch', 'Cost($)'))
-    print(('=' * 34))
+    print("%10s%10s%4s%8s" % ("From", "To", "Ch", "Cost($)"))
+    print(("=" * 34))
     for i in range(len(mesh)):
         x, y = mesh[i]
-        total += cost[x][y]*chlist[i]
-        print('%10s%10s%4d%8d' % (labels[x], labels[y], chlist[i],
-                                  cost[x][y]*chlist[i]))
-    print(('=' * 34))
-    print('%12s%8d' % ('Total cost', total))
-    print('Number of backbone nodes =', len(backbone))
+        total += cost[x][y] * chlist[i]
+        print(
+            "%10s%10s%4d%8d" % (labels[x], labels[y], chlist[i], cost[x][y] * chlist[i])
+        )
+    print(("=" * 34))
+    print("%12s%8d" % ("Total cost", total))
+    print("Number of backbone nodes =", len(backbone))
     bknet = [p for p in mesh if p[0] in backbone and p[1] in backbone]
-    print('Number of links in the backbone =', len(bknet))
+    print("Number of links in the backbone =", len(bknet))
 
 
 # Plot topology produced by MENTOR algorithm
-def plotNetwork(out, pos, labels=[], edisp=True, filename="figure_mentor.png",
-                title='MENTOR Algorithm'):
+def plotNetwork(
+    out,
+    pos,
+    labels=[],
+    edisp=True,
+    filename="figure_mentor.png",
+    title="MENTOR Algorithm",
+):
     numNodes = len(pos)
     mesh = out["mesh"]
     ch = out["channels"]
@@ -402,25 +429,22 @@ def plotNetwork(out, pos, labels=[], edisp=True, filename="figure_mentor.png",
 
     # Draw all nodes
     nx.draw_networkx_nodes(G, pos, node_size=10, node_color="green", alpha=0.5)
-    nx.draw_networkx_nodes(G, pos, nodelist=[median], node_size=150,
-                           node_color="black")
-    nx.draw_networkx_nodes(G, pos, nodelist=backbone, node_size=50,
-                           node_color="red")
+    nx.draw_networkx_nodes(G, pos, nodelist=[median], node_size=150, node_color="black")
+    nx.draw_networkx_nodes(G, pos, nodelist=backbone, node_size=50, node_color="red")
 
     # Draw node and edge labels
     if edisp:
         elabels = {e: ch[mesh.index(e)] for e in mesh}
-        nx.draw_networkx_edge_labels(G, pos, elabels, edgelist=mesh,
-                                     font_size=10, font_color="grey")
+        nx.draw_networkx_edge_labels(G, pos, elabels, font_size=10, font_color="grey")
     if labels:
         nLabel = {n: labels[n] for n in backbone}
-        npos = {n: (pos[n][0], pos[n][1]+0.03) for n in pos}
-        nx.draw_networkx_labels(G, npos, nLabel, nodelist=backbone,
-                                font_size=10, font_color="black")
+        npos = {n: (pos[n][0], pos[n][1] + 0.03) for n in pos}
+        nx.draw_networkx_labels(G, npos, nLabel, font_size=10, font_color="black")
 
     plt.xlim(-0.05, 1.05)
     plt.ylim(-0.05, 1.05)
-    plt.axis('off')
+    plt.axis("off")
     plt.title(title)
     plt.savefig(filename)
     plt.show()
+    return plt

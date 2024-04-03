@@ -30,7 +30,7 @@ import math
 
 class SANDAlgorithm(object):
     def __init__(self):
-        self.INF = 2**32-1
+        self.INF = 2**32 - 1
         self.logger = logging.getLogger(__name__)  # self.__class__.
 
     def log(self, fname):
