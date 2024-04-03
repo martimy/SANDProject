@@ -21,7 +21,7 @@ $ pip3 install -r requirements.txt
 You can run the examples provided directly:
 
 ```
-$ ./MENTORExample1.py
+$ ./MentorExample1.py
 ```
 
 The streamlit version of the MENTOR cann be accessed localy or via streamlit
@@ -30,7 +30,7 @@ The streamlit version of the MENTOR cann be accessed localy or via streamlit
 $ streamlit run st_mentor.py
 ```
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://mentor.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sandproject-mentor.streamlit.app/)
 
 
 # Documentation
