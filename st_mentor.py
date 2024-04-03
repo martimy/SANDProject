@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Copyright (c) 2017-2024 Maen Artimy
+# Copyright (c) 2024 Maen Artimy
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,89 +21,40 @@
 # SOFTWARE.
 
 
-# This file includes a Python implementation of the MENTOR Algorithm described
-# in: Aaron Kershenbaum. 1993. Telecommunications Network Design Algorithms.
-# McGraw-Hill, Inc., New York, NY, USA.
-
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import networkx as nx
 from sand.mentor import MENTOR, printCost
+from sand.mresults import cost_to_dataframe, plot_network
 
-WPARM = "Help"
-RPARM = "Help"
-DPARM = "Help"
-ALPHA = "Help"
-CAP = "Help"
-SLACK = "Help"
+WPARM = "fraction of max weight"
+RPARM = "fraction of max distance"
+DPARM = "fraction for fig_of_merit"
+ALPHA = "The paramter controls the backbone shape. Value of 0 yields a minimum spanning tree (MST) and the value of 1 yields a star."
+CAP = "The usable capacity of a channel"
+SLACK = "The paramter controls "
 
+ABOUT = r"""
+This application is an implemenation of the MENTOR algorithm. The MENTOR (MEsh Network Topology Optimization and Routing) algorithm was developed by Aaron Kershenbaum, Parviz Kermani, and George A. Grove in 1991 to design mesh networks, focusing on their initial topology.
 
-def cost_to_dataframe(out, cost, labels):
-    backbone = out["backbone"]
-    mesh = out["mesh"]
-    chlist = out["channels"]
+The algorithm assumes three conditions for achieving a low-cost topology:
 
-    data = []
+   - Create direct paths to avoid longer routes.
+   - Use links to their maximum operating capacity.
+   - Whenever possible, use long links with high capacity.
 
-    for i in range(len(mesh)):
-        x, y = mesh[i]
-        cost_val = cost[x][y] * chlist[i]
-        data.append([labels[x], labels[y], chlist[i], cost_val])
+Routing Strategy:
 
-    total_cost = sum(row[3] for row in data)
-
-    bknet = [(x, y) for (x, y) in mesh if x in backbone and y in backbone]
-
-    return (
-        pd.DataFrame(data, columns=["From", "To", "Ch", "Cost"]),
-        total_cost,
-        len(backbone),
-        len(bknet),
-    )
-
-
-def plotNetwork(out, numNodes, labels=[], edisp=True, title="MENTOR Algorithm"):
-    mesh = out["mesh"]
-    ch = out["channels"]
-    backbone = out["backbone"]
-    median = out["median"]
-    tree = out["tree"]
-
-    # Separate the mesh
-    bknet = [p for p in mesh if p[0] in backbone and p[1] in backbone]
-    local = [p for p in mesh if p not in bknet]
-
-    plt.figure(figsize=(6, 6), facecolor="white")
-    G = nx.path_graph(numNodes)
-    pos = nx.spring_layout(G)
-
-    # nx.draw_networkx_edges(G,pos,alpha=0.1)
-    # nx.draw_networkx_edges(G,pos,edgelist=edges,alpha=0.2)
-    nx.draw_networkx_edges(G, pos, local, alpha=0.3, edge_color="green")
-    nx.draw_networkx_edges(G, pos, bknet, alpha=0.8, edge_color="blue")
-    nx.draw_networkx_edges(G, pos, tree, width=2, edge_color="blue")
-
-    # Draw all nodes
-    nx.draw_networkx_nodes(G, pos, node_size=10, node_color="green", alpha=0.5)
-    nx.draw_networkx_nodes(G, pos, nodelist=[median], node_size=150, node_color="black")
-    nx.draw_networkx_nodes(G, pos, nodelist=backbone, node_size=50, node_color="red")
-
-    # Draw node and edge labels
-    if edisp:
-        elabels = {e: ch[mesh.index(e)] for e in mesh}
-        nx.draw_networkx_edge_labels(G, pos, elabels, font_size=10, font_color="grey")
-    if labels:
-        nLabel = {n: labels[n] for n in backbone}
-        npos = {n: (pos[n][0], pos[n][1] + 0.03) for n in pos}
-        nx.draw_networkx_labels(G, npos, nLabel, font_size=10, font_color="black")
-
-    return plt
+   - For large traffic requirements, the algorithm sends traffic over a direct route between the source and destination. This satisfies all three conditions.
+   - In other cases, traffic is sent via a path within a tree. The algorithm aggregates traffic as much as possible, ensuring at least the last two conditions are met.
+   - The topology over which traffic flows is defined using Dijkstra's and Prim's algorithms.
+"""
 
 
 def main():
-    st.title("MENTOR Algorithm Example")
+    st.title("Backbone Design using MENTOR")
+    expand_about = st.expander("About", expanded=False)
+    expand_about.markdown(ABOUT)
 
     st.sidebar.header("Upload Cost Matrix")
     uploaded_cost_file = st.sidebar.file_uploader("Upload Cost CSV", type=["csv"])
@@ -126,11 +77,10 @@ def main():
     alpha = st.sidebar.slider(
         "Alpha", min_value=0.0, max_value=1.0, step=0.1, value=0.0, help=ALPHA
     )
-    # cap = st.sidebar.slider("Capacity", min_value=16, max_value=64, step=4, value=32, help=CAP)
     slack = st.sidebar.slider(
         "Slack", min_value=0.0, max_value=1.0, step=0.1, value=0.2, help=SLACK
     )
-    cap = st.sidebar.number_input("Capacity", min_value=1, help="CAP")
+    cap = st.sidebar.number_input("Capacity", min_value=1, value=1000000, help=CAP)
 
     if uploaded_cost_file and uploaded_req_file:
         cost_df = pd.read_csv(uploaded_cost_file)
@@ -150,16 +100,15 @@ def main():
             )
             return
 
-        cost = cost_df.values.tolist()
-
         st.subheader("Design Input")
         expand_cost = st.expander("Cost Matrix")
-        expand_cost.table(cost_df)
-
-        req = req_df.values.tolist()
+        expand_cost.dataframe(cost_df, use_container_width=True, hide_index=True)
 
         expand_req = st.expander("Requirements Matrix:")
-        expand_req.table(req_df)
+        expand_req.dataframe(req_df, use_container_width=True, hide_index=True)
+
+        cost = cost_df.values.tolist()
+        req = req_df.values.tolist()
 
         # Call MENTOR algorithm:
         algo = MENTOR()
@@ -184,12 +133,12 @@ def main():
         col2.metric("Number of backbone nodes", num_backbone)
         col3.metric("Number of backbone links", num_links)
 
-        st.subheader("Network Plot:")
-        st.dataframe(df)
+        st.subheader("Network Data:")
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
         # Plot Network:
         st.subheader("Network Plot:")
-        plt = plotNetwork(out, len(cost), labels, title="MENTOR Algorithm - Example")
+        plt = plot_network(out, len(cost), labels, title="MENTOR Algorithm - Example")
         plt.axis("off")
         st.pyplot(plt)
 
