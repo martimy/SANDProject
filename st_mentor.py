@@ -24,7 +24,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from sand.mentor import MENTOR, printCost
+from sand.mentor import MENTOR
 from sand.mresults import cost_to_dataframe, plot_network
 
 WPARM = "fraction of max weight"
@@ -102,10 +102,10 @@ def main():
 
         st.subheader("Design Input")
         expand_cost = st.expander("Cost Matrix")
-        expand_cost.dataframe(cost_df, use_container_width=True, hide_index=True)
+        cost_df = expand_cost.data_editor(cost_df, use_container_width=True, hide_index=True)
 
         expand_req = st.expander("Requirements Matrix:")
-        expand_req.dataframe(req_df, use_container_width=True, hide_index=True)
+        req_df = expand_req.data_editor(req_df, use_container_width=True, hide_index=True)
 
         cost = cost_df.values.tolist()
         req = req_df.values.tolist()
