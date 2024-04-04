@@ -184,7 +184,6 @@ class MENTOR(SANDAlgorithm):
             unassigned = unassigned[~within_radius]
 
         backbone.sort()
-        print(Cassoc, backbone)
         return backbone, weights, Cassoc
 
     # Build initial tree topology

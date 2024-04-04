@@ -21,7 +21,7 @@
 
 import streamlit as st
 import pandas as pd
-from sand.mentor import MENTOR
+from sand.mentor_algo import MENTOR
 from sand.mresults import cost_to_dataframe, plot_network
 
 WPARM = "The weight threshold for selecting the backbone nodes"
@@ -63,13 +63,13 @@ def main():
     expand_about = st.expander("About", expanded=False)
     expand_about.markdown(ABOUT)
 
-    st.sidebar.header("Upload Cost Matrix")
-    uploaded_cost_file = st.sidebar.file_uploader("Upload Cost CSV", type=["csv"])
-
     st.sidebar.header("Upload Requirements Matrix")
     uploaded_req_file = st.sidebar.file_uploader(
         "Upload Requirements CSV", type=["csv"]
     )
+
+    st.sidebar.header("Upload Cost Matrix")
+    uploaded_cost_file = st.sidebar.file_uploader("Upload Cost CSV", type=["csv"])
 
     st.sidebar.header("Input Paramters")
     wparm = st.sidebar.slider(
