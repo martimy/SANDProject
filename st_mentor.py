@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # Copyright (c) 2024 Maen Artimy
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,31 +21,40 @@
 
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from sand.mentor import MENTOR
 from sand.mresults import cost_to_dataframe, plot_network
 
-WPARM = "fraction of max weight"
-RPARM = "fraction of max distance"
-DPARM = "fraction for fig_of_merit"
-ALPHA = "The paramter controls the backbone shape. Value of 0 yields a minimum spanning tree (MST) and the value of 1 yields a star."
+WPARM = "The weight threshold for selecting the backbone nodes"
+RPARM = "The cost threshold for selecting the local nodes"
+DPARM = "The paramter controlling the relative importance of weight vs cost \
+         in selecting backbone nodes"
+ALPHA = "The paramter controls the backbone shape. Value of 0 yields a \
+         minimum spanning tree (MST) and the value of 1 yields a star."
 CAP = "The usable capacity of a channel"
-SLACK = "The paramter controls "
+SLACK = "The paramter controls the threshold of selecting direct links"
 
 ABOUT = r"""
-This application is an implemenation of the MENTOR algorithm. The MENTOR (MEsh Network Topology Optimization and Routing) algorithm was developed by Aaron Kershenbaum, Parviz Kermani, and George A. Grove in 1991 to design mesh networks, focusing on their initial topology.
+This application is an implementation of the MENTOR algorithm. 
+The MENTOR (MEsh Network Topology Optimization and Routing) algorithm was 
+developed by Aaron Kershenbaum, Parviz Kermani, and George A. Grove in 1991 
+to design mesh networks, focusing on their initial topology.
 
 The algorithm assumes three conditions for achieving a low-cost topology:
 
-   - Create direct paths to avoid longer routes.
-   - Use links to their maximum operating capacity.
-   - Whenever possible, use long links with high capacity.
+   - Traffic is routed on direct paths.
+   - Links are sufficiently utilized without being highly utilized.
+   - High capacity links are used.
 
 Routing Strategy:
 
-   - For large traffic requirements, the algorithm sends traffic over a direct route between the source and destination. This satisfies all three conditions.
-   - In other cases, traffic is sent via a path within a tree. The algorithm aggregates traffic as much as possible, ensuring at least the last two conditions are met.
-   - The topology over which traffic flows is defined using Dijkstra's and Prim's algorithms.
+   - For large traffic requirements, the algorithm sends traffic over a direct 
+   route between the source and destination. This satisfies all three 
+   conditions.
+   - In other cases, traffic is sent via a path within a tree. 
+   The algorithm aggregates traffic as much as possible, ensuring at least the 
+   last two conditions are met.
+   - The topology over which traffic flows is defined using Dijkstra's and 
+   Prim's algorithms.
 """
 
 
@@ -66,13 +73,13 @@ def main():
 
     st.sidebar.header("Input Paramters")
     wparm = st.sidebar.slider(
-        "W Parameter", min_value=0.1, max_value=2.0, step=0.1, value=1.0, help=WPARM
+        "W Parameter", min_value=0.0, max_value=1.0, step=0.1, value=1.0, help=WPARM
     )
     rparm = st.sidebar.slider(
-        "R Parameter", min_value=0.1, max_value=1.0, step=0.1, value=0.5, help=RPARM
+        "R Parameter", min_value=0.0, max_value=1.0, step=0.1, value=0.5, help=RPARM
     )
     dparm = st.sidebar.slider(
-        "D Parameter", min_value=0.1, max_value=1.0, step=0.1, value=0.5, help=DPARM
+        "D Parameter", min_value=0.0, max_value=1.0, step=0.1, value=0.5, help=DPARM
     )
     alpha = st.sidebar.slider(
         "Alpha", min_value=0.0, max_value=1.0, step=0.1, value=0.0, help=ALPHA
@@ -80,7 +87,9 @@ def main():
     slack = st.sidebar.slider(
         "Slack", min_value=0.0, max_value=1.0, step=0.1, value=0.2, help=SLACK
     )
-    cap = st.sidebar.number_input("Capacity", min_value=1, value=1000000, help=CAP)
+    cap = st.sidebar.number_input(
+        "Capacity", min_value=1, step=1000, value=1000000, help=CAP
+    )
 
     if uploaded_cost_file and uploaded_req_file:
         cost_df = pd.read_csv(uploaded_cost_file)
@@ -93,19 +102,25 @@ def main():
             )
             return
 
-        # Check if the requirements CSV file has the same number of columns and rows as the cost matrix
+        # Check if the requirements CSV file has the same number of columns
+        # and rows as the cost matrix
         if req_df.shape != cost_df.shape:
             st.error(
-                "Error: The requirements matrix CSV file must have the same dimensions as the cost matrix."
+                "Error: The requirements matrix CSV file must have the same \
+                    dimensions as the cost matrix."
             )
             return
 
         st.subheader("Design Input")
         expand_cost = st.expander("Cost Matrix")
-        cost_df = expand_cost.data_editor(cost_df, use_container_width=True, hide_index=True)
+        cost_df = expand_cost.data_editor(
+            cost_df, use_container_width=True, hide_index=True
+        )
 
         expand_req = st.expander("Requirements Matrix:")
-        req_df = expand_req.data_editor(req_df, use_container_width=True, hide_index=True)
+        req_df = expand_req.data_editor(
+            req_df, use_container_width=True, hide_index=True
+        )
 
         cost = cost_df.values.tolist()
         req = req_df.values.tolist()
