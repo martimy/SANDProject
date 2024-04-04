@@ -100,12 +100,23 @@ class MENTOR(SANDAlgorithm):
         return np.argmin(moments)
 
     # Find the Median node for backbone nodes
-    def __findBackboneMedian(self, backbone, weight):
+    def x__findBackboneMedian(self, backbone, weight):
         moment = []
         for i in range(len(backbone)):
             cw = [self.cost[backbone[i]][j] * weight[j] for j in backbone]
             moment.append(sum(cw))
         return backbone[moment.index(min(moment))]
+
+    def __findBackboneMedian(self, backbone, weight):
+        # Initialize moments array with zeros
+        moments = np.zeros(len(backbone))
+        for i, node in enumerate(backbone):
+            # Vectorized computation of cost * weight
+            cw = self.cost[node][backbone] * weight[backbone]  
+            moments[i] = np.sum(cw)
+        # Return the node with the minimum moment
+        return backbone[np.argmin(moments)]
+
 
     # Select backbone nodes by comparing total traffic requirements
     # to a threshold
@@ -118,6 +129,7 @@ class MENTOR(SANDAlgorithm):
 
         # Find indices where weights meet threshold. These are backbone nodes
         backbone = np.where(weights >= weight_threshold)[0]
+
         # Remaining nodes are to be decided later
         tbAssigned = np.where(weights < weight_threshold)[0]
 
@@ -166,16 +178,19 @@ class MENTOR(SANDAlgorithm):
 
             # Find indices of unassigned nodes within radius
             within_radius = np.where(self.cost[unassigned, n] < radius)[0]
+
             # Update Cassoc for nodes within radius
             Cassoc[unassigned[within_radius]] = n
             # Remove assigned nodes from unassigned
-            unassigned = np.delete(unassigned, within_radius)
+            unassigned = unassigned[~within_radius]
+
 
         backbone.sort()
+        print(Cassoc, backbone)
         return backbone, weights, Cassoc
 
     # Build initial tree topology
-    def __findPrimDijk(self, root, Cassoc):
+    def x__findPrimDijk(self, root, Cassoc):
         assert root in self.backbone
         # outTree = list(range(self.nt))
         outTree = list(self.backbone)
@@ -207,6 +222,34 @@ class MENTOR(SANDAlgorithm):
                 if label[o] > x:
                     label[o] = x
                     pred[o] = n
+        return pred
+
+
+    def __findPrimDijk(self, root, Cassoc):
+        assert root in self.backbone
+
+        outTree = self.backbone 
+        pred = np.array([root if Cassoc[i] == i else Cassoc[i] for i in range(self.nt)])
+        print(pred)
+        inTree = []
+        label = self.cost[root]
+        while outTree.size > 0:
+            n = root
+            leastCost = MENTOR.INF
+            for b in self.backbone:
+                if label[b] < leastCost:
+                    leastCost = label[b]
+                    n = b
+
+            inTree.append(n)
+            outTree = outTree[outTree != n]  # Remove n from outTree
+            label[n] = MENTOR.INF
+            for o in outTree:
+                x = self.alpha * leastCost + self.cost[o][n]
+                if label[o] > x:
+                    label[o] = x
+                    pred[o] = n
+
         return pred
 
     # Find the shortest path through the tree topology
