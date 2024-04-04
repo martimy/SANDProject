@@ -23,7 +23,10 @@ import math
 import numpy as np
 from .main import SANDAlgorithm
 
+
 class MENTOR(SANDAlgorithm):
+    INF = 2**16 - 1
+
     def __init__(self):
         SANDAlgorithm.__init__(self)
 
@@ -81,74 +84,129 @@ class MENTOR(SANDAlgorithm):
         }
 
     # Set node weights
-    def __findWeight(self):
-        return np.sum(self.req + self.req.T, axis=1)
+    def __findWeights(self):
+        weights = np.zeros(self.nt)  # Initialize weights array with zeros
+        for n in range(self.nt):
+            weights[n] = np.sum(self.req[n]) + np.sum(self.req[:, n])
+        return weights
 
     # Find the Median node for all nodes
-    def __findMedian(self, weight):
-        return np.argmin(np.dot(self.cost, weight))
+    def __findMedian(self, weights):
+        """
+        Return the index of the node with the minimum moment
+
+        """
+        moments = np.sum(self.cost * weights, axis=1)
+        return np.argmin(moments)
 
     # Find the Median node for backbone nodes
     def __findBackboneMedian(self, backbone, weight):
-        return backbone[np.argmin(np.dot(self.cost[backbone], weight[backbone]))]
+        moment = []
+        for i in range(len(backbone)):
+            cw = [self.cost[backbone[i]][j] * weight[j] for j in backbone]
+            moment.append(sum(cw))
+        return backbone[moment.index(min(moment))]
 
     # Select backbone nodes by comparing total traffic requirements
     # to a threshold
     def __findBackbone(self):
-        weight = self.__findWeight()
-        median = self.__findMedian(weight)
-        self.maxWeight = np.max(weight)
-        self.wparm *= self.maxWeight
-        tbAssigned = np.arange(self.nt)
-        backbone = tbAssigned[weight >= self.wparm]
-        tbAssigned = tbAssigned[weight < self.wparm]
+        weights = self.__findWeights()
+        median = self.__findMedian(weights)
 
-        radius = np.max(self.cost) * self.rParm
+        self.maxWeight = np.max(weights)
+        weight_threshold = self.wparm * self.maxWeight
+
+        # Find indices where weights meet threshold. These are backbone nodes
+        backbone = np.where(weights >= weight_threshold)[0]
+        # Remaining nodes are to be decided later
+        tbAssigned = np.where(weights < weight_threshold)[0]
+
+        # Calculate the distance matrix between tbAssigned and backbone nodes
+        distances = self.cost[tbAssigned][:, backbone]
+
+        # Initialize Cassoc with indices of backbone nodes closest to each
+        # tbAssigned node
+        closest_backbone = np.argmin(distances, axis=1)
+
+        # These are local nodes
         Cassoc = np.arange(self.nt)
+        Cassoc[tbAssigned] = np.array(backbone)[closest_backbone]
 
-        while tbAssigned.size > 0:
-            unassigned = np.array([])
-            for c in tbAssigned:
-                closest_backbone = np.argmin(self.cost[c, backbone])
-                if self.cost[c, backbone[closest_backbone]] < radius:
-                    Cassoc[c] = backbone[closest_backbone]
-                else:
-                    unassigned = np.append(unassigned, c)
+        # find the maximum distance (radius) between any two nodes
+        self.maxDist = np.max(self.cost)
 
-            if unassigned.size == 0:
-                break
+        # Determine which nodes need further evaluation
+        radius = self.maxDist * self.rParm
+        need_evaluation = np.any(distances >= radius, axis=1)
+        unassigned = tbAssigned[need_evaluation]
 
-            tbAssigned = unassigned
-            merit = self.dParm * (self.cost[tbAssigned, median] / np.max(self.cost)) + (
+        # for the remaining nodes:
+        # calculate the distance between each unassigned node and
+        # all backbone nodes to determine if it needs to be assigned
+
+        # The Figure of Merit function
+        def figMerit(u):
+            return self.dParm * (self.cost[u][median] / self.maxDist) + (
                 1 - self.dParm
-            ) * (weight[tbAssigned] / self.maxWeight)
-            n = tbAssigned[np.argmax(merit)]
-            backbone = np.append(backbone, n)
-            tbAssigned = np.setdiff1d(tbAssigned, n)
+            ) * (weights[u] / self.maxWeight)
 
-        return backbone, weight, Cassoc
+        while unassigned.size > 0:
+            # The node with the maximum Figure of Merit is added to backbone
+            merit = np.array([figMerit(u) for u in unassigned])
+            n = unassigned[np.argmax(merit)]
+
+            # Add the selected node to the backbone
+            backbone = np.append(backbone, n)
+            unassigned = np.setdiff1d(unassigned, [n])
+
+            for m in unassigned:
+                if self.cost[m, n] < radius:
+                    Cassoc[m] = n
+                    unassigned = np.setdiff1d(unassigned, [m])
+
+            # Find indices of unassigned nodes within radius
+            within_radius = np.where(self.cost[unassigned, n] < radius)[0]
+            # Update Cassoc for nodes within radius
+            Cassoc[unassigned[within_radius]] = n
+            # Remove assigned nodes from unassigned
+            unassigned = np.delete(unassigned, within_radius)
+
+        backbone.sort()
+        return backbone, weights, Cassoc
 
     # Build initial tree topology
     def __findPrimDijk(self, root, Cassoc):
         assert root in self.backbone
-        outTree = np.array(self.backbone)
-        pred = np.array([root if Cassoc[x] == x else Cassoc[x] for x in range(self.nt)])
+        # outTree = list(range(self.nt))
+        outTree = list(self.backbone)
+        # strating with the terminal association list, assigning all backbone nodes
+        # to root as predecessor
+        pred = [
+            (lambda x: root if Cassoc[x] == x else Cassoc[x])(i) for i in range(self.nt)
+        ]
         inTree = []
-        label = np.array(self.cost[root])
-        while outTree.size > 0:
+        label = list(self.cost[root])  # copy the cost of every node to root
+        while outTree:
+            # select a node that is in the backbone, not already inTree,
+            # and has the least cost
+            # the first item selected will be the root
             n = root
-            leastCost = np.inf
+            leastCost = self.INF
             for b in self.backbone:
                 if label[b] < leastCost:
                     leastCost = label[b]
                     n = b
+
+            # leastCost = min(label)
+            # n = label.index(leastCost)
             inTree.append(n)
-            outTree = outTree[outTree != n]
-            label[n] = np.inf
+            outTree.remove(n)
+            label[n] = self.INF  # prevent the node from being considered again
             for o in outTree:
-                x = self.alpha * leastCost + self.cost[o, n]
-                label[o] = np.minimum(label[o], x)
-                pred[o] = n
+                x = self.alpha * leastCost + self.cost[o][n]
+                if label[o] > x:
+                    label[o] = x
+                    pred[o] = n
         return pred
 
     # Find the shortest path through the tree topology
@@ -157,70 +215,81 @@ class MENTOR(SANDAlgorithm):
         n = 1
         while n < self.nt:
             for i in range(self.nt):
-                if i not in preOrder and pred[i] in preOrder:
+                if (i not in preOrder) and (pred[i] in preOrder):
                     preOrder.append(i)
                     n += 1
-        spDist = np.zeros((self.nt, self.nt))
+
+        # Find the distance (cost) of the shortest path between any two nodes
+        # along the backbone tree
+        spDist = [[0 for j in range(self.nt)] for i in range(self.nt)]
         for i in range(self.nt):
             j = preOrder[i]
             p = pred[j]
+            # spDist[j][j] = 0
             for k in range(i):
                 l = preOrder[k]
-                spDist[j, l] = spDist[l, j] = spDist[p, l] + self.cost[j, p]
-        spPred = np.array([[pred[j] for j in range(self.nt)] for i in range(self.nt)])
+                spDist[j][l] = spDist[l][j] = spDist[p][l] + self.cost[j][p]
+
+        # Set the predecessors
+        spPred = [[pred[j] for j in range(self.nt)] for i in range(self.nt)]
         for i in range(self.nt):
-            spPred[i, i] = i
+            spPred[i][i] = i
         for i in range(self.nt):
             if i == root:
                 continue
             p = pred[i]
-            spPred[i, p] = i
+            spPred[i][p] = i
             while p != root:
                 pp = pred[p]
-                spPred[i, pp] = p
+                spPred[i][pp] = p
                 p = pp
+
         return spPred, spDist
 
     # Find the order in which to consider node pairs
     def __setSequence(self, spPred):
-        home = np.full((self.nt, self.nt), None)
-        pair = np.array([
-            [i, j]
+        home = [[None for i in range(self.nt)] for j in range(self.nt)]
+        pair = [
+            self.__makePair(self.nt, i, j)
             for i in range(self.nt)
             for j in range(i + 1, self.nt)
-        ])
-        npairs = len(pair)
-        nDep = np.zeros(npairs, dtype=int)
-        dep1 = np.zeros(npairs, dtype=int)
-        dep2 = np.zeros(npairs, dtype=int)
-        for p in range(npairs):
+        ]
+
+        np = self.nt * self.nt
+        nDep = [0] * np
+        dep1 = [0] * np
+        dep2 = [0] * np
+        for p in range(len(pair)):
             pr = pair[p]
-            i, j = pr
-            p1 = spPred[i, j]
-            p2 = spPred[j, i]
-            if p1 == i:
+            i, j = self.__splitPair(self.nt, pr)
+            p1 = spPred[i][j]
+            p2 = spPred[j][i]
+            if p1 == i:  # this is a tree link
                 h = None
-            elif p1 == p2:
+            elif p1 == p2:  # 2-hop path, only one possible home
                 h = p1
             else:
-                if (self.cost[i, p1] + self.cost[p1, j]) <= (
-                    self.cost[i, p2] + self.cost[p2, j]
+                if (self.cost[i][p1] + self.cost[p1][j]) <= (
+                    self.cost[i][p2] + self.cost[p2][j]
                 ):
                     h = p1
                 else:
                     h = p2
-            home[i, j] = h
+            home[i][j] = h
             if h:
-                pair_ih = i * self.nt + h
-                dep1[p] = pair_ih
+                # increment the number of pairs that depend on (i, h)
+                pair_ih = self.__makePair(self.nt, i, h)
+                dep1[pr] = pair_ih
                 nDep[pair_ih] += 1
-                pair_jh = j * self.nt + h
-                dep2[p] = pair_jh
+                pair_jh = self.__makePair(self.nt, j, h)
+                dep2[pr] = pair_jh
                 nDep[pair_jh] += 1
             else:
-                dep1[p] = dep2[p] = None
+                dep1[pr] = dep2[pr] = None
 
-        seqList = pair[nDep == 0]
+        # print("nDep :\n",nDep)
+        seqList = [p for p in pair if nDep[p] == 0]
+
         nseq = len(seqList)
         iseq = 0
         while iseq < nseq:
@@ -229,48 +298,63 @@ class MENTOR(SANDAlgorithm):
             d = dep1[p]
             if d:
                 if nDep[d] == 1:
-                    seqList = np.append(seqList, d)
+                    seqList.append(d)
                     nseq += 1
                 else:
                     nDep[d] -= 1
+
             d = dep2[p]
             if d:
                 if nDep[d] == 1:
-                    seqList = np.append(seqList, d)
+                    seqList.append(d)
                     nseq += 1
                 else:
                     nDep[d] -= 1
+
+        # print("seqList :\n", seqList)
+
         return seqList, home
 
     # Select links and channels
     def __compress(self, seqList, home):
-        reqList = np.array(self.req)
+        # copy req to reqList
+        reqList = list(self.req)
+        for row in range(len(self.req)):
+            reqList[row] = list(self.req[row])
+
         npairs = (self.nt * (self.nt - 1)) // 2
         endList = []
         multList = []
+
         for p in range(npairs):
-            x, y = seqList[p]
-            h = home[x, y]
+            x, y = self.__splitPair(self.nt, seqList[p])
+            h = home[x][y]
+
+            # assume full duplex always
             mult = 0
-            load = max(reqList[x, y], reqList[y, x])
+            load = max([reqList[x][y], reqList[y][x]])
             if load >= self.cap:
                 mult = math.floor(load / self.cap)
                 load -= mult * self.cap
+
             ovflow12 = ovflow21 = 0
             if (h is None and load > 0) or (load >= (1 - self.slack) * self.cap):
                 mult += 1
             else:
-                ovflow12 = max(0, reqList[x, y] - mult * self.cap)
-                ovflow21 = max(0, reqList[y, x] - mult * self.cap)
+                ovflow12 = max([0, reqList[x][y] - mult * self.cap])
+                ovflow21 = max([0, reqList[y][x] - mult * self.cap])
+
             if mult > 0:
                 endList.append((x, y))
                 multList.append(mult)
+
             if ovflow12 > 0:
-                reqList[x, h] += ovflow12
-                reqList[h, y] += ovflow12
+                reqList[x][h] += ovflow12
+                reqList[h][y] += ovflow12
             if ovflow21 > 0:
-                reqList[y, h] += ovflow21
-                reqList[h, x] += ovflow21
+                reqList[y][h] += ovflow21
+                reqList[h][x] += ovflow21
+
         return endList, multList
 
     def __makePair(self, n, i, j):
@@ -281,5 +365,3 @@ class MENTOR(SANDAlgorithm):
 
     def __splitPair(self, n, p):
         return p // n, p % n
-
-
