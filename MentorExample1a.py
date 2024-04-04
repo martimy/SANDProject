@@ -31,7 +31,7 @@ from sand.mentor_algo import MENTOR
 from sand.mentor import printCost, plotNetwork
 import random
 
-random.seed(5) #5
+random.seed(5)  # 5
 
 numNodes = 10
 # Node labels:
@@ -74,8 +74,10 @@ for i in range(len(req)):
 
 # Call MENTOR algorithm:
 algo = MENTOR()
-out = algo.run(cost, req, wparm=0.85, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2)
-#out = algo.run(cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2)
+out = algo.run(
+    cost, req, wparm=0.85, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2
+)
+# out = algo.run(cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2)
 
 # Print results:
 printCost(out, cost, labels)

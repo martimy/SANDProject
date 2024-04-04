@@ -112,11 +112,10 @@ class MENTOR(SANDAlgorithm):
         moments = np.zeros(len(backbone))
         for i, node in enumerate(backbone):
             # Vectorized computation of cost * weight
-            cw = self.cost[node][backbone] * weight[backbone]  
+            cw = self.cost[node][backbone] * weight[backbone]
             moments[i] = np.sum(cw)
         # Return the node with the minimum moment
         return backbone[np.argmin(moments)]
-
 
     # Select backbone nodes by comparing total traffic requirements
     # to a threshold
@@ -184,53 +183,16 @@ class MENTOR(SANDAlgorithm):
             # Remove assigned nodes from unassigned
             unassigned = unassigned[~within_radius]
 
-
         backbone.sort()
         print(Cassoc, backbone)
         return backbone, weights, Cassoc
 
     # Build initial tree topology
-    def x__findPrimDijk(self, root, Cassoc):
-        assert root in self.backbone
-        # outTree = list(range(self.nt))
-        outTree = list(self.backbone)
-        # strating with the terminal association list, assigning all backbone nodes
-        # to root as predecessor
-        pred = [
-            (lambda x: root if Cassoc[x] == x else Cassoc[x])(i) for i in range(self.nt)
-        ]
-        inTree = []
-        label = list(self.cost[root])  # copy the cost of every node to root
-        while outTree:
-            # select a node that is in the backbone, not already inTree,
-            # and has the least cost
-            # the first item selected will be the root
-            n = root
-            leastCost = self.INF
-            for b in self.backbone:
-                if label[b] < leastCost:
-                    leastCost = label[b]
-                    n = b
-
-            # leastCost = min(label)
-            # n = label.index(leastCost)
-            inTree.append(n)
-            outTree.remove(n)
-            label[n] = self.INF  # prevent the node from being considered again
-            for o in outTree:
-                x = self.alpha * leastCost + self.cost[o][n]
-                if label[o] > x:
-                    label[o] = x
-                    pred[o] = n
-        return pred
-
-
     def __findPrimDijk(self, root, Cassoc):
         assert root in self.backbone
 
-        outTree = self.backbone 
+        outTree = self.backbone
         pred = np.array([root if Cassoc[i] == i else Cassoc[i] for i in range(self.nt)])
-        print(pred)
         inTree = []
         label = self.cost[root]
         while outTree.size > 0:
@@ -254,7 +216,10 @@ class MENTOR(SANDAlgorithm):
 
     # Find the shortest path through the tree topology
     def __setDist(self, root, pred):
+        # Initialize preOrder array with root
         preOrder = [root]
+
+        # Traverse the tree and populate preOrder array
         n = 1
         while n < self.nt:
             for i in range(self.nt):
@@ -262,9 +227,11 @@ class MENTOR(SANDAlgorithm):
                     preOrder.append(i)
                     n += 1
 
+        # Initialize spDist and spPred arrays
+        spDist = np.zeros((self.nt, self.nt))
+
         # Find the distance (cost) of the shortest path between any two nodes
         # along the backbone tree
-        spDist = [[0 for j in range(self.nt)] for i in range(self.nt)]
         for i in range(self.nt):
             j = preOrder[i]
             p = pred[j]
@@ -274,9 +241,10 @@ class MENTOR(SANDAlgorithm):
                 spDist[j][l] = spDist[l][j] = spDist[p][l] + self.cost[j][p]
 
         # Set the predecessors
-        spPred = [[pred[j] for j in range(self.nt)] for i in range(self.nt)]
+        spPred = np.tile(pred, (self.nt, 1))
         for i in range(self.nt):
             spPred[i][i] = i
+
         for i in range(self.nt):
             if i == root:
                 continue
@@ -292,16 +260,18 @@ class MENTOR(SANDAlgorithm):
     # Find the order in which to consider node pairs
     def __setSequence(self, spPred):
         home = [[None for i in range(self.nt)] for j in range(self.nt)]
+
+        # make pairs
         pair = [
             self.__makePair(self.nt, i, j)
             for i in range(self.nt)
             for j in range(i + 1, self.nt)
         ]
 
-        np = self.nt * self.nt
-        nDep = [0] * np
-        dep1 = [0] * np
-        dep2 = [0] * np
+        nn = self.nt * self.nt
+        nDep = [0] * nn
+        dep1 = [0] * nn
+        dep2 = [0] * nn
         for p in range(len(pair)):
             pr = pair[p]
             i, j = self.__splitPair(self.nt, pr)
@@ -330,7 +300,6 @@ class MENTOR(SANDAlgorithm):
             else:
                 dep1[pr] = dep2[pr] = None
 
-        # print("nDep :\n",nDep)
         seqList = [p for p in pair if nDep[p] == 0]
 
         nseq = len(seqList)
@@ -353,8 +322,6 @@ class MENTOR(SANDAlgorithm):
                     nseq += 1
                 else:
                     nDep[d] -= 1
-
-        # print("seqList :\n", seqList)
 
         return seqList, home
 
@@ -401,10 +368,7 @@ class MENTOR(SANDAlgorithm):
         return endList, multList
 
     def __makePair(self, n, i, j):
-        if i < j:
-            return n * i + j
-        else:
-            return n * j + i
+        return np.where(i < j, n * i + j, n * j + i)
 
     def __splitPair(self, n, p):
         return p // n, p % n
