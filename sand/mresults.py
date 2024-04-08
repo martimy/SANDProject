@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # Copyright (c) 2024 Maen Artimy
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -53,7 +51,7 @@ def cost_to_dataframe(out, cost, labels):
     )
 
 
-def plot_network(out, numNodes, labels=[], edisp=True, image=None):
+def plot_network(out, numNodes, labels=[], pos=None, edisp=True, image=None):
     mesh = out["mesh"]
     ch = out["channels"]
     backbone = out["backbone"]
@@ -66,9 +64,6 @@ def plot_network(out, numNodes, labels=[], edisp=True, image=None):
 
     # plt.figure(figsize=(6, 6), facecolor="white")
 
-    # if image:
-    #     plt.imshow(image)
-
     fig, ax = plt.subplots()  # figsize=(6, 6))
 
     if image is not None:
@@ -80,7 +75,8 @@ def plot_network(out, numNodes, labels=[], edisp=True, image=None):
     G.add_edges_from(local)
     G.add_edges_from(bknet)
 
-    pos = nx.spring_layout(G)
+    if pos is None:
+        pos = nx.spring_layout(G)
 
     # nx.draw_networkx_edges(G,pos,alpha=0.1)
     # nx.draw_networkx_edges(G,pos,edgelist=edges,alpha=0.2)
