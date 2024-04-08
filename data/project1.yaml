@@ -12,7 +12,7 @@ coordinates:
   8: [-0.17,-1]
   9: [-0.58,-0.83]
 
-image_path: "data/Canada2BWPrint-1.jpg"
+image_path: "data/USA522letterBWPrint.jpg"
 
 traffic_matrix:
   - [0,8000,8000,8000,8000,8000,8000,8000,8000,8000]

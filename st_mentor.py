@@ -58,7 +58,6 @@ Routing Strategy:
    Prim's algorithms.
 """
 
-
 def input_check(labels, req_df, cost_df, positions, image_path):
     if labels is None:
         return "Please provide node labels"
@@ -135,7 +134,7 @@ def main():
         message = input_check(labels, req_df, cost_df, positions, image_path)
 
         if message is None:
-            st.subheader("Design Input")
+            st.header("Design Input")
 
             expand_req = st.expander("Requirements Matrix:")
             req_df = expand_req.data_editor(
@@ -164,9 +163,7 @@ def main():
             )
 
             # Print results:
-            st.subheader("Design Output")
-            labels = list(cost_df.columns)
-
+            st.header("Design Output")
             df, total_cost, num_backbone, num_links = cost_to_dataframe(
                 out, cost, labels
             )
@@ -195,7 +192,7 @@ def main():
         else:
             st.error(message)
     else:
-        st.warning("Upload input files")
+        st.warning("Upload input files.")
 
 
 if __name__ == "__main__":
