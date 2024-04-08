@@ -24,6 +24,9 @@
 import networkx as nx
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+import io
 
 
 def cost_to_dataframe(out, cost, labels):
@@ -50,7 +53,7 @@ def cost_to_dataframe(out, cost, labels):
     )
 
 
-def plot_network(out, numNodes, labels=[], edisp=True, title="MENTOR Algorithm"):
+def plot_network(out, numNodes, labels=[], edisp=True, image=None):
     mesh = out["mesh"]
     ch = out["channels"]
     backbone = out["backbone"]
@@ -61,7 +64,18 @@ def plot_network(out, numNodes, labels=[], edisp=True, title="MENTOR Algorithm")
     bknet = [p for p in mesh if p[0] in backbone and p[1] in backbone]
     local = [p for p in mesh if p not in bknet]
 
-    plt.figure(figsize=(6, 6), facecolor="white")
+    # plt.figure(figsize=(6, 6), facecolor="white")
+
+    # if image:
+    #     plt.imshow(image)
+
+    fig, ax = plt.subplots()  # figsize=(6, 6))
+
+    if image is not None:
+        img = Image.open(io.BytesIO(image))
+        img_array = np.array(img)
+        ax.imshow(img_array, cmap="gray", extent=[-1, 1, -1, 1], aspect="auto")
+
     G = nx.path_graph(numNodes)
     G.add_edges_from(local)
     G.add_edges_from(bknet)

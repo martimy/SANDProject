@@ -71,6 +71,9 @@ def main():
     st.sidebar.header("Upload Cost Matrix")
     uploaded_cost_file = st.sidebar.file_uploader("Upload Cost CSV", type=["csv"])
 
+    st.sidebar.header("Upload Image")
+    uploaded_img_file = st.sidebar.file_uploader("Choose a file")
+
     st.sidebar.header("Input Paramters")
     wparm = st.sidebar.slider(
         "W Parameter", min_value=0.0, max_value=1.0, step=0.1, value=1.0, help=WPARM
@@ -153,7 +156,12 @@ def main():
 
         # Plot Network:
         st.subheader("Network Plot:")
-        plt = plot_network(out, len(cost), labels, title="MENTOR Algorithm - Example")
+        if uploaded_img_file is not None:
+            bytes_data = uploaded_img_file.getvalue()
+            plt = plot_network(out, len(cost), labels, image=bytes_data)
+        else:
+            plt = plot_network(out, len(cost), labels)
+
         plt.axis("off")
         st.pyplot(plt)
 
