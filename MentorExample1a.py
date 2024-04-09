@@ -33,7 +33,7 @@ import random
 
 mpl_logger = logging.getLogger("matplotlib")
 mpl_logger.setLevel(logging.WARNING)
-           
+
 random.seed(5)  # 5
 
 numNodes = 10
@@ -71,7 +71,7 @@ cost = [
 ]
 
 # Set traffic requirements matrix:
-#req = [[random.randint(1, 10) for i in range(numNodes)] for j in range(numNodes)]
+# req = [[random.randint(1, 10) for i in range(numNodes)] for j in range(numNodes)]
 req = [[8 for i in range(numNodes)] for j in range(numNodes)]
 for i in range(len(req)):
     req[i][i] = 0

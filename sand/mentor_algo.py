@@ -50,11 +50,10 @@ class MENTOR(SANDAlgorithm):
 
         # PART 1 : find backbone nodes
         self.backbone, weight, Cassoc = self.__findBackbone()
-     
         self.logger.debug(f"Backbone nodes = {self.backbone}")
         self.logger.debug(f"Associations   = {Cassoc}")
         self.logger.debug(f"Weight = {weight}")
-        
+
         # PART 2 : Create topology
         median = self.__findBackboneMedian(self.backbone, weight)
         self.logger.debug(f"Backbone Median = {median}")
@@ -69,18 +68,18 @@ class MENTOR(SANDAlgorithm):
         seqList, home = self.__setSequence(spPred)
         self.logger.debug(f"seqList = \n{seqList}")
         self.logger.debug(f"Home = \n{np.array(home)}")
-        
+
         endList, multList = self.__compress(seqList, home)
         self.logger.debug(f"endList = {endList}")
         self.logger.debug(f"multList = {multList}")
-        
+
         tree = [
             (i, pred[i])
             for i in range(len(pred))
             if i in self.backbone and i != pred[i]
         ]
         self.logger.debug(f"tree = {tree}")
-        
+
         return {
             "backbone": self.backbone,
             "tree": tree,
@@ -106,13 +105,6 @@ class MENTOR(SANDAlgorithm):
         return np.argmin(moments)
 
     # Find the Median node for backbone nodes
-    def x__findBackboneMedian(self, backbone, weight):
-        moment = []
-        for i in range(len(backbone)):
-            cw = [self.cost[backbone[i]][j] * weight[j] for j in backbone]
-            moment.append(sum(cw))
-        return backbone[moment.index(min(moment))]
-
     def __findBackboneMedian(self, backbone, weight):
         # Initialize moments array with zeros
         moments = np.zeros(len(backbone))
@@ -224,6 +216,7 @@ class MENTOR(SANDAlgorithm):
         # Initialize preOrder array with root
         preOrder = [root]
 
+        # Order nodes relative to their position in the tree, starting from root
         # Traverse the tree and populate preOrder array
         n = 1
         while n < self.nt:
@@ -236,16 +229,16 @@ class MENTOR(SANDAlgorithm):
         spDist = np.zeros((self.nt, self.nt))
 
         # Find the distance (cost) of the shortest path between any two nodes
-        # along the backbone tree
+        # along the backbone tree. The loop starts by calculating the distance
+        # between the nodes closer to the root and make its way backwords
         for i in range(self.nt):
             j = preOrder[i]
             p = pred[j]
-            # spDist[j][j] = 0
             for k in range(i):
                 l = preOrder[k]
                 spDist[j][l] = spDist[l][j] = spDist[p][l] + self.cost[j][p]
 
-        # Set the predecessors
+        # Set the predecessors array.
         spPred = np.tile(pred, (self.nt, 1))
         for i in range(self.nt):
             spPred[i][i] = i

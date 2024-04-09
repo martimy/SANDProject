@@ -58,6 +58,7 @@ Routing Strategy:
    Prim's algorithms.
 """
 
+
 def input_check(labels, req_df, cost_df, positions, image_path):
     if labels is None:
         return "Please provide node labels"
