@@ -50,31 +50,37 @@ class MENTOR(SANDAlgorithm):
 
         # PART 1 : find backbone nodes
         self.backbone, weight, Cassoc = self.__findBackbone()
-        self.logger.debug(
-            "Backbone nodes = {} : {}".format(
-                len(self.backbone), ",".join(map(str, self.backbone))
-            )
-        )
-
+     
+        self.logger.debug(f"Backbone nodes = {self.backbone}")
+        self.logger.debug(f"Associations   = {Cassoc}")
+        self.logger.debug(f"Weight = {weight}")
+        
         # PART 2 : Create topology
         median = self.__findBackboneMedian(self.backbone, weight)
-        self.logger.debug("Backbone Median = {}".format(median))
+        self.logger.debug(f"Backbone Median = {median}")
 
         pred = self.__findPrimDijk(median, Cassoc)
-        self.logger.debug(
-            "Pred nodes = {} {}".format(len(pred), ",".join(map(str, pred)))
-        )
+        self.logger.debug(f"Pred nodes     = {','.join(map(str, pred))}")
 
         spPred, spDist = self.__setDist(median, pred)
-        seqList, home = self.__setSequence(spPred)
-        endList, multList = self.__compress(seqList, home)
+        self.logger.debug(f"spPred nodes = \n{spPred}")
+        self.logger.debug(f"spDist = \n{spDist}")
 
+        seqList, home = self.__setSequence(spPred)
+        self.logger.debug(f"seqList = \n{seqList}")
+        self.logger.debug(f"Home = \n{np.array(home)}")
+        
+        endList, multList = self.__compress(seqList, home)
+        self.logger.debug(f"endList = {endList}")
+        self.logger.debug(f"multList = {multList}")
+        
         tree = [
             (i, pred[i])
             for i in range(len(pred))
             if i in self.backbone and i != pred[i]
         ]
-
+        self.logger.debug(f"tree = {tree}")
+        
         return {
             "backbone": self.backbone,
             "tree": tree,

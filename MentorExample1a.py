@@ -26,11 +26,14 @@
 # Aaron Kershenbaum. 1993. Telecommunications Network Design Algorithms.
 # McGraw-Hill, Inc., New York, NY, USA.
 
-
+import logging
 from sand.mentor_algo import MENTOR
 from sand.mentor import printCost, plotNetwork
 import random
 
+mpl_logger = logging.getLogger("matplotlib")
+mpl_logger.setLevel(logging.WARNING)
+           
 random.seed(5)  # 5
 
 numNodes = 10
@@ -68,14 +71,17 @@ cost = [
 ]
 
 # Set traffic requirements matrix:
-req = [[random.randint(1, 10) for i in range(numNodes)] for j in range(numNodes)]
+#req = [[random.randint(1, 10) for i in range(numNodes)] for j in range(numNodes)]
+req = [[8 for i in range(numNodes)] for j in range(numNodes)]
 for i in range(len(req)):
     req[i][i] = 0
 
 # Call MENTOR algorithm:
 algo = MENTOR()
+algo.log("mentor.log")
+
 out = algo.run(
-    cost, req, wparm=0.85, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2
+    cost, req, wparm=00.5, rparm=0.5, dparm=0.5, alpha=0.0, cap=34, slack=0.2
 )
 # out = algo.run(cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2)
 
