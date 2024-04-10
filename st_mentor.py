@@ -86,7 +86,7 @@ def input_check(labels, req_df, cost_df, positions, image_path):
 
 
 def main():
-    st.title("Backbone Design using MENTOR")
+    st.title("Backbone Network Design")
     expand_about = st.expander("About", expanded=False)
     expand_about.markdown(ABOUT)
 
