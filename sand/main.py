@@ -32,5 +32,5 @@ class SANDAlgorithm(object):
         self.INF = 2**32 - 1
 
     def log(self, fname):
-        logging.basicConfig(filename=fname, level=logging.DEBUG)
+        logging.basicConfig(filename=fname, level=logging.DEBUG, filemode='w')
         self.logger = logging.getLogger(__name__)
