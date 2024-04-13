@@ -25,7 +25,6 @@
 # Network Design(SAND).
 
 import logging
-import math
 
 
 class SANDAlgorithm(object):

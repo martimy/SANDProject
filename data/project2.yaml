@@ -1,0 +1,81 @@
+labels:
+  - EDAB #Edmonton, Alberta
+  - CASB #Castlegar, British Columbia
+  - POMB #Port Mellon, British Columbia
+  - QSBC #Quesnel, British Columbia
+  - RIBC #Richmond, British Columbia
+  - WINM #Winnipeg, Manitoba
+  - COBN #Corner Brook, Newfoundland and Labrador
+  - EDNB #Edmundston, New Brunswick
+  - STNB #Saint John, New Brunswick
+  - PHNS #Port Hawkesbury, Nova Scotia
+  - MARK #Markham, Ontario
+  - MISS #Mississauga, Ontario (Main Site)
+  - GATQ #Gatineau, Quebec,
+  - MONQ #Montréal, Quebec (Main Site)
+  - REGS #Regina, Saskatchewan
+
+
+Here are the coordinates for the cities you mentioned:
+
+- **Edmonton, Alberta**: 53°32′04″N 113°29′25″W²²
+- **Castlegar, British Columbia**: 49°19′28″N 117°40′01″W¹⁷
+- **Port Mellon, British Columbia**: 49°31′12″N 123°29′24″W⁴²
+- **Quesnel, British Columbia**: 52°58′47″N 122°29′37″W²⁷
+- **Richmond, British Columbia**: 49°10′N 123°8′W¹
+- **Winnipeg, Manitoba**: 49°53′4″N 97°8′47″W[^30^]
+- **Corner Brook, Newfoundland and Labrador**: 48°56′56″N 57°57′0″W⁴⁹
+- **Edmundston, New Brunswick**: 47°22′8″N 68°19′36″W[^10^]
+- **Saint John, New Brunswick**: 45°16′50″N 66°04′34″W³⁶
+- **Port Hawkesbury, Nova Scotia**: 45°36′55″N 61°21′51″W¹⁵
+- **Markham, Ontario**: 43.87667°N, 79.26333°W⁶¹
+- **Mississauga, Ontario (Main Site)**: 43.595310°N,  -79.640579°W⁵⁷
+- **Gatineau, Quebec**: 45.47723000°N,  -75.70164000°W⁶⁹
+- **Montréal, Quebec (Main Site)**: 45.50008000°N,  -73.68248000°W⁵¹
+- **Regina, Saskatchewan**: 50.45008000°N,  -104.61780000°W⁷⁴
+
+
+coordinates:
+  0: (-0.8622, 0.2245)
+  1: (-0.6722, 0.5917)
+  2: (-0.2788, 0.6971)
+  3: (-0.4625, 0.4806)
+  4: (-0.3172, 0.6783)
+  5: (0.3961, 0.4422)
+  6: (0.9784, -0.7985)
+  7: (0.6971, -0.9314)
+  8: (0.9046, -1.0)
+
+  10: (0.1652, -0.8934)
+  11: (0.3273, -1.0)
+  12: (0.9713, 0.5474)
+  13: (1.0, 0.3765)
+  14: (-1.0, 0.1999)
+
+image_path: "data/USA522letterBWPrint.jpg"
+
+traffic_matrix:
+  - [0,8000,8000,8000,8000,8000,8000,8000,8000,8000]
+  - [8000,0,8000,8000,8000,8000,8000,8000,8000,8000]
+  - [8000,8000,0,8000,8000,8000,8000,8000,8000,8000]
+  - [8000,8000,8000,0,8000,8000,8000,8000,8000,8000]
+  - [8000,8000,8000,8000,0,8000,8000,8000,8000,8000]
+  - [8000,8000,8000,8000,8000,0,8000,8000,8000,8000]
+  - [8000,8000,8000,8000,8000,8000,0,8000,8000,8000]
+  - [8000,8000,8000,8000,8000,8000,8000,0,8000,8000]
+  - [8000,8000,8000,8000,8000,8000,8000,8000,0,8000]
+  - [8000,8000,8000,8000,8000,8000,8000,8000,8000,0]
+  
+cost_matrix:
+  - [1000,8308,3130,5242,1231,2440,8275,5101,5731,7396]
+  - [8308,1000,6199,5104,8137,6910,1309,4699,4597,2062]
+  - [3130,6199,1000,3802,2989,1708,6187,3394,4129,5332]
+  - [5242,5104,3802,1000,5017,4294,4927,1672,1567,4042]
+  - [1231,8137,2989,5017,1000,2320,8098,4888,5509,7213]
+  - [2440,6910,1708,4294,2320,1000,6895,3976,4690,6037]
+  - [8275,1309,6187,4927,8098,6895,1000,4558,4402,1915]
+  - [5101,4699,3394,1672,4888,3976,4558,1000,1747,3646]
+  - [5731,4597,4129,1567,5509,4690,4402,1747,1000,3538]
+  - [7396,2062,5332,4042,7213,6037,1915,3646,3538,1000]
+
+

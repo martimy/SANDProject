@@ -52,23 +52,23 @@ class MENTOR(SANDAlgorithm):
         self.backbone, weight, Cassoc = self.__findBackbone()
         self.logger.debug(f"Backbone nodes = {self.backbone}")
         self.logger.debug(f"Associations   = {Cassoc}")
-        self.logger.debug(f"Weight = {weight}")
+        self.logger.debug(f"Weight         = {weight}")
 
         # PART 2 : Create topology
         median = self.__findBackboneMedian(self.backbone, weight)
         self.logger.debug(f"Backbone Median = {median}")
 
         pred = self.__findPrimDijk(median, Cassoc)
-        self.logger.debug(f"Pred nodes     = {','.join(map(str, pred))}")
+        self.logger.debug(f"Pred nodes     = {pred}")
 
         spPred, spDist = self.__setDist(median, pred)
         self.logger.debug(f"spPred nodes = \n{spPred}")
         self.logger.debug(f"spDist = \n{spDist}")
 
         seqList, home = self.__setSequence(spPred)
-        self.logger.debug(f"seqList = \n{seqList}")
-        self.logger.debug(f"Home = \n{np.array(home)}")
-
+        self.logger.debug(f"seqList = {seqList}")
+        self.logger.debug(f"Home = \n{home}")
+        
         endList, multList = self.__compress(seqList, home)
         self.logger.debug(f"endList = {endList}")
         self.logger.debug(f"multList = {multList}")
@@ -184,7 +184,7 @@ class MENTOR(SANDAlgorithm):
         backbone.sort()
         return backbone, weights, Cassoc
 
-    # Build initial tree topology
+    # Build initial backbone tree topology
     def __findPrimDijk(self, root, Cassoc):
         assert root in self.backbone
 
@@ -211,7 +211,7 @@ class MENTOR(SANDAlgorithm):
 
         return pred
 
-    # Find the shortest path through the tree topology
+    # Find the shortest path through the backbone tree topology
     def __setDist(self, root, pred):
         # Initialize preOrder array with root
         preOrder = [root]
@@ -257,7 +257,8 @@ class MENTOR(SANDAlgorithm):
 
     # Find the order in which to consider node pairs
     def __setSequence(self, spPred):
-        home = [[None for i in range(self.nt)] for j in range(self.nt)]
+        # Create a 2D array filled with None values
+        home = np.full((self.nt, self.nt), None)
 
         # make pairs
         pair = [
