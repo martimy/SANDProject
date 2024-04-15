@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 
-import math
 import numpy as np
 from .main import SANDAlgorithm
 
@@ -50,35 +49,39 @@ class MENTOR(SANDAlgorithm):
 
         # PART 1 : find backbone nodes
         self.backbone, weight, Cassoc = self.__findBackbone()
-        self.logger.debug(f"Backbone nodes = {self.backbone}")
-        self.logger.debug(f"Associations   = {Cassoc}")
-        self.logger.debug(f"Weight         = {weight}")
+        self.logger.debug(f"{self.backbone = !s}")
+        self.logger.debug(f"{Cassoc = !s}")
+        self.logger.debug(f"{weight = !s}")
 
         # PART 2 : Create topology
         median = self.__findBackboneMedian(self.backbone, weight)
-        self.logger.debug(f"Backbone Median = {median}")
+        self.logger.debug(f"{median = }")
 
         pred = self.__findPrimDijk(median, Cassoc)
-        self.logger.debug(f"Pred nodes     = {pred}")
+        self.logger.debug(f"{pred = !s}")
 
         spPred, spDist = self.__setDist(median, pred)
         self.logger.debug(f"spPred nodes = \n{spPred}")
         self.logger.debug(f"spDist = \n{spDist}")
 
         seqList, home = self.__setSequence(spPred)
-        self.logger.debug(f"seqList = {seqList}")
+        self.logger.debug(f"{seqList = }")
         self.logger.debug(f"Home = \n{home}")
-        
+
+        # seqList2, home2 = self.b__setSequence(spPred)
+        # pairs = [i*self.nt + j for i, j in seqList2]
+        # self.logger.debug(f"pairs   = {pairs}")
+
         endList, multList = self.__compress(seqList, home)
-        self.logger.debug(f"endList = {endList}")
-        self.logger.debug(f"multList = {multList}")
+        self.logger.debug(f"{endList = }")
+        self.logger.debug(f"{multList = }")
 
         tree = [
             (i, pred[i])
             for i in range(len(pred))
             if i in self.backbone and i != pred[i]
         ]
-        self.logger.debug(f"tree = {tree}")
+        self.logger.debug(f"{tree = }")
 
         return {
             "backbone": self.backbone,
@@ -257,12 +260,15 @@ class MENTOR(SANDAlgorithm):
 
     # Find the order in which to consider node pairs
     def __setSequence(self, spPred):
+        makePair = lambda n, i, j: (n * i + j if i < j else n * j + i)
+        splitPair = lambda n, p: (p // n, p % n)
+
         # Create a 2D array filled with None values
         home = np.full((self.nt, self.nt), None)
 
         # make pairs
         pair = [
-            self.__makePair(self.nt, i, j)
+            makePair(self.nt, i, j)
             for i in range(self.nt)
             for j in range(i + 1, self.nt)
         ]
@@ -273,7 +279,7 @@ class MENTOR(SANDAlgorithm):
         dep2 = [0] * nn
         for p in range(len(pair)):
             pr = pair[p]
-            i, j = self.__splitPair(self.nt, pr)
+            i, j = splitPair(self.nt, pr)
             p1 = spPred[i][j]
             p2 = spPred[j][i]
             if p1 == i:  # this is a tree link
@@ -288,26 +294,25 @@ class MENTOR(SANDAlgorithm):
                 else:
                     h = p2
             home[i][j] = h
-            if h:
+            if h is not None:
                 # increment the number of pairs that depend on (i, h)
-                pair_ih = self.__makePair(self.nt, i, h)
+                pair_ih = makePair(self.nt, i, h)
                 dep1[pr] = pair_ih
                 nDep[pair_ih] += 1
-                pair_jh = self.__makePair(self.nt, j, h)
+                pair_jh = makePair(self.nt, j, h)
                 dep2[pr] = pair_jh
                 nDep[pair_jh] += 1
             else:
                 dep1[pr] = dep2[pr] = None
 
         seqList = [p for p in pair if nDep[p] == 0]
-
         nseq = len(seqList)
         iseq = 0
         while iseq < nseq:
             p = seqList[iseq]
             iseq += 1
             d = dep1[p]
-            if d:
+            if d is not None:
                 if nDep[d] == 1:
                     seqList.append(d)
                     nseq += 1
@@ -315,7 +320,7 @@ class MENTOR(SANDAlgorithm):
                     nDep[d] -= 1
 
             d = dep2[p]
-            if d:
+            if d is not None:
                 if nDep[d] == 1:
                     seqList.append(d)
                     nseq += 1
@@ -326,32 +331,33 @@ class MENTOR(SANDAlgorithm):
 
     # Select links and channels
     def __compress(self, seqList, home):
-        # copy req to reqList
-        reqList = list(self.req)
-        for row in range(len(self.req)):
-            reqList[row] = list(self.req[row])
+        splitPair = lambda n, p: (p // n, p % n)
 
-        npairs = (self.nt * (self.nt - 1)) // 2
+        # copy req to reqList
+        reqList = self.req.copy()
+
         endList = []
         multList = []
 
+        npairs = (self.nt * (self.nt - 1)) // 2
         for p in range(npairs):
-            x, y = self.__splitPair(self.nt, seqList[p])
+            x, y = splitPair(self.nt, seqList[p])
             h = home[x][y]
 
             # assume full duplex always
-            mult = 0
-            load = max([reqList[x][y], reqList[y][x]])
-            if load >= self.cap:
-                mult = math.floor(load / self.cap)
-                load -= mult * self.cap
+            # Ensure that the load between two nodes does not exceed
+            # the capacity, adjusting it if necessary by calculating a
+            # multiplier based on how many times the capacity is exceeded.
+            load = max(reqList[x][y], reqList[y][x])
+            mult = max(0, (load - 1) // self.cap)
+            load -= mult * self.cap
 
             ovflow12 = ovflow21 = 0
             if (h is None and load > 0) or (load >= (1 - self.slack) * self.cap):
                 mult += 1
             else:
-                ovflow12 = max([0, reqList[x][y] - mult * self.cap])
-                ovflow21 = max([0, reqList[y][x] - mult * self.cap])
+                ovflow12 = max(0, reqList[x][y] - mult * self.cap)
+                ovflow21 = max(0, reqList[y][x] - mult * self.cap)
 
             if mult > 0:
                 endList.append((x, y))
@@ -365,9 +371,3 @@ class MENTOR(SANDAlgorithm):
                 reqList[h][x] += ovflow21
 
         return endList, multList
-
-    def __makePair(self, n, i, j):
-        return np.where(i < j, n * i + j, n * j + i)
-
-    def __splitPair(self, n, p):
-        return p // n, p % n

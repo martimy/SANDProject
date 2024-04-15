@@ -80,9 +80,7 @@ for i in range(len(req)):
 algo = MENTOR()
 algo.log("mentor.log")
 
-out = algo.run(
-    cost, req, wparm=00.5, rparm=0.5, dparm=0.5, alpha=0.0, cap=34, slack=0.2
-)
+out = algo.run(cost, req, wparm=0.5, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2)
 # out = algo.run(cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2)
 
 # Print results:

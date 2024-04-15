@@ -28,7 +28,8 @@
 
 import logging
 from sand.mentor_algo import MENTOR
-from sand.mentor import printCost, plotNetwork
+from sand.mentor import plotNetwork
+from sand.mresults import design_output
 import random
 
 mpl_logger = logging.getLogger("matplotlib")
@@ -44,28 +45,30 @@ labels = ["A", "B", "C", "D", "E"]
 pos = {
     0: (0, 1),
     1: (1, 1),
-    2: (0.5, 0.5),
+    2: (0.5, 0.6),
     3: (0, 0),
     4: (1, 0.5),
 }
 
 # Set cost matrix:
 cost = [
-[1,8,4,8,8],
-[8,1,4,8,2],
-[4,4,1,4,4],
-[8,8,4,1,8],
-[8,2,4,8,1]]
+    [1, 8, 4, 8, 8],
+    [8, 1, 4, 8, 2],
+    [4, 4, 1, 4, 4],
+    [8, 8, 4, 1, 8],
+    [8, 2, 4, 8, 1],
+]
 
 # Set traffic requirements matrix:
 # req = [[random.randint(1, 10) for i in range(numNodes)] for j in range(numNodes)]
-#req = [[8 for i in range(numNodes)] for j in range(numNodes)]
+# req = [[8 for i in range(numNodes)] for j in range(numNodes)]
 req = [
-[0,8,18,8,8],
-[8,0,18,8,8],
-[18,18,0,18,8],
-[8,8,18,0,8],
-[8,8,8,8,0]]
+    [0, 8, 18, 8, 8],
+    [0, 0, 18, 8, 8],
+    [0, 0, 0, 18, 8],
+    [0, 0, 0, 0, 8],
+    [0, 0, 0, 0, 0],
+]
 for i in range(len(req)):
     req[i][i] = 0
 
@@ -73,11 +76,9 @@ for i in range(len(req)):
 algo = MENTOR()
 algo.log("mentor.log")
 
-out = algo.run(
-    cost, req, wparm=0.5, rparm=0.5, dparm=0.5, alpha=0.0, cap=30, slack=0.2
-)
+out = algo.run(cost, req, wparm=0.5, rparm=0.5, dparm=0.5, alpha=0.0, cap=12, slack=0.2)
 # out = algo.run(cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.0, cap=32, slack=0.2)
 
 # Print results:
-printCost(out, cost, labels)
+design_output(out, cost, labels, 12)
 plotNetwork(out, pos, labels)

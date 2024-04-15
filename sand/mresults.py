@@ -27,6 +27,45 @@ from PIL import Image
 import io
 
 
+from rich.console import Console
+from rich.table import Table
+
+
+def design_output(out, cost, labels, cap):
+    backbone = out["backbone"]
+    mesh = out["mesh"]
+    chlist = out["channels"]
+
+    total = 0
+
+    # Create a console object
+    console = Console()
+
+    table = Table(title="Design Results")
+
+    table.add_column("From", min_width=5)
+    table.add_column("To", min_width=5)
+    table.add_column("Channel", min_width=10)
+    table.add_column("Cost", min_width=10)
+
+    for i in range(len(mesh)):
+        x, y = mesh[i]
+        acost = cost[x][y] * chlist[i]
+        total += acost
+        table.add_row(labels[x], labels[y], str(chlist[i]), str(acost))
+
+    console = Console()
+    console.print(table)
+
+    # Print total cost
+    console.print(f"{'Total cost = ':<12}{total:<8}")
+    console.print(f"Number of backbone nodes = {len(backbone)}")
+
+    # Calculate and print number of links in the backbone
+    bknet = [p for p in mesh if p[0] in backbone and p[1] in backbone]
+    console.print(f"Number of links in the backbone = {len(bknet)}")
+
+
 def cost_to_dataframe(out, cost, labels):
     backbone = out["backbone"]
     mesh = out["mesh"]
