@@ -41,18 +41,18 @@ def design_output(out, cost, labels, cap):
     # Create a console object
     console = Console()
 
-    table = Table(title="Design Results")
+    table = Table(title="Network Links")
 
     table.add_column("From", min_width=5)
     table.add_column("To", min_width=5)
-    table.add_column("Channel", min_width=10)
+    table.add_column("Capacity", min_width=10)
     table.add_column("Cost", min_width=10)
 
     for i in range(len(mesh)):
         x, y = mesh[i]
         acost = cost[x][y] * chlist[i]
         total += acost
-        table.add_row(labels[x], labels[y], str(chlist[i]), str(acost))
+        table.add_row(labels[x], labels[y], str(chlist[i] * cap), str(acost))
 
     console = Console()
     console.print(table)

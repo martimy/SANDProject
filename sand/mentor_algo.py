@@ -30,7 +30,17 @@ class MENTOR(SANDAlgorithm):
         SANDAlgorithm.__init__(self)
 
     def run(
-        self, cost, req, wparm=0, rparm=0.5, dparm=0.5, alpha=0.5, cap=1, slack=0.4
+        self,
+        cost,
+        req,
+        *,
+        wparm=0,
+        rparm=0.5,
+        dparm=0.5,
+        alpha=0.5,
+        cap=1,
+        slack=0.4,
+        mutil=1.0,
     ):
         self.nt = len(cost)  # Number of nodes
         self.cost = np.array(cost)  # Cost matrix (nt x nc)
@@ -44,6 +54,7 @@ class MENTOR(SANDAlgorithm):
         self.alpha = alpha  # PrimDijk parameter [0,1]
         self.cap = cap  # single-channel usable capacity
         self.slack = slack
+        self.mutil = mutil
 
         self.logger.debug("Starting MENTOR Algorithm")
 
@@ -353,7 +364,9 @@ class MENTOR(SANDAlgorithm):
             load -= mult * self.cap
 
             ovflow12 = ovflow21 = 0
-            if (h is None and load > 0) or (load >= (1 - self.slack) * self.cap):
+            if (h is None and load > 0) or (
+                load >= self.mutil * (1 - self.slack) * self.cap
+            ):
                 mult += 1
             else:
                 ovflow12 = max(0, reqList[x][y] - mult * self.cap)
